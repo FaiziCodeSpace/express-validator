@@ -16,6 +16,13 @@ app.post(
   "/postUsers",
   [
     body("name")
+      .custom((value) => {
+        const existUser = users.find((user) => user.name === value);
+        if (existUser) {
+          throw new Error("The name already exist!");
+        }
+        return true;
+      })
       .notEmpty()
       .withMessage("name shouldnot be left empty")
       .isAlphanumeric()
@@ -23,9 +30,14 @@ app.post(
     body("email").isEmail().normalizeEmail().withMessage("must be an email"),
   ],
   (req, res) => {
-    const error = validationResult(req);
-    if(!error.isEmpty()){
-        return res.json(error);
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      const errorObj = {};
+      errors.array().forEach((err) => {
+        errorObj["error"] = err.msg;
+      });
+      return res.status(400).json({ errors: errorObj });
     }
     const id = users.length + 1;
     const { name, email } = req.body;
